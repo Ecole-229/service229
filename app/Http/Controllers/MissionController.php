@@ -1,8 +1,8 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Events\MissionCompleted;
 use App\Models\Mission;
+use App\Services\Marketplace\MissionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -10,6 +10,10 @@ use Inertia\Response;
 
 class MissionController extends Controller
 {
+    public function __construct(private MissionService $missionService)
+    {
+    }
+
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -37,67 +41,47 @@ class MissionController extends Controller
         ]);
     }
 
-    /**
-     * Le prestataire démarre la mission.
-     */
     public function start(Request $request, Mission $mission): RedirectResponse
     {
         $this->authorize('start', $mission);
 
-        $mission->update(['status' => Mission::STATUS_IN_PROGRESS]);
+        $this->missionService->start($mission);
 
         return back()->with('success', 'Mission démarrée.');
     }
 
-    /**
-     * Le prestataire signale que le travail est terminé de son côté.
-     */
     public function markAwaitingConfirmation(Request $request, Mission $mission): RedirectResponse
     {
         $this->authorize('markAwaitingConfirmation', $mission);
 
-        $mission->update(['status' => Mission::STATUS_AWAITING_CONFIRMATION]);
+        $this->missionService->markAwaitingConfirmation($mission);
 
         return back()->with('success', 'En attente de confirmation du client.');
     }
 
-    /**
-     * Le client confirme que le travail est bien terminé.
-     */
     public function confirmCompletion(Request $request, Mission $mission): RedirectResponse
     {
         $this->authorize('confirmCompletion', $mission);
 
-        $mission->update(['status' => Mission::STATUS_COMPLETED]);
-
-        $mission->serviceRequest->update(['status' => \App\Models\ServiceRequest::STATUS_CLOSED]);
-
-        MissionCompleted::dispatch($mission->fresh());
+        $this->missionService->confirmCompletion($mission);
 
         return back()->with('success', 'Mission terminée. Vous pouvez laisser un avis.');
     }
 
-    /**
-     * Le client indique que le paiement (hors plateforme) a bien été effectué.
-     */
     public function markPaid(Request $request, Mission $mission): RedirectResponse
     {
         $this->authorize('markPaid', $mission);
 
-        $mission->update(['paiementEffectue' => true]);
+        $this->missionService->markPaid($mission);
 
         return back()->with('success', 'Paiement marqué comme effectué.');
     }
 
-    /**
-     * Annulation par le client ou le prestataire, tant que la mission
-     * n'est pas déjà terminée.
-     */
     public function cancel(Request $request, Mission $mission): RedirectResponse
     {
         $this->authorize('cancel', $mission);
 
-        $mission->update(['status' => Mission::STATUS_CANCELLED]);
+        $this->missionService->cancel($mission);
 
         return back()->with('success', 'Mission annulée.');
     }

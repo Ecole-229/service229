@@ -1,19 +1,19 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\ProviderProfile;
 use App\Models\ServiceCategory;
 use App\Models\Zone;
+use App\Services\Marketplace\SearchService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class SearchController extends Controller
 {
-    /**
-     * Page d'accueil publique (correspond à l'écran "Trouvez le bon
-     * professionnel" de la maquette).
-     */
+    public function __construct(private SearchService $searchService)
+    {
+    }
+
     public function home(): Response
     {
         return Inertia::render('Home', [
@@ -22,10 +22,6 @@ class SearchController extends Controller
         ]);
     }
 
-    /**
-     * Résultats de recherche par catégorie + zone (correspond à l'écran
-     * "Carreleurs disponibles à Tankpè" de la maquette).
-     */
     public function index(Request $request): Response
     {
         $validated = $request->validate([
@@ -33,20 +29,10 @@ class SearchController extends Controller
             'zone_id' => ['nullable', 'exists:zones,id'],
         ]);
 
-        $providers = ProviderProfile::query()
-            ->with(['user', 'services.category', 'zones'])
-            ->when(
-                $validated['service_category_id'] ?? null,
-                fn ($q, $categoryId) => $q->whereHas(
-                    'services',
-                    fn ($sq) => $sq->where('category_id', $categoryId)
-                )
-            )
-            ->when(
-                $validated['zone_id'] ?? null,
-                fn ($q, $zoneId) => $q->whereHas('zones', fn ($zq) => $zq->where('zones.id', $zoneId))
-            )
-            ->get();
+        $providers = $this->searchService->searchProviders(
+            $validated['service_category_id'] ?? null,
+            $validated['zone_id'] ?? null,
+        );
 
         return Inertia::render('Search/Results', [
             'providers' => $providers,

@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
+use App\Services\Marketplace\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -9,10 +10,13 @@ use Inertia\Response;
 
 class NotificationController extends Controller
 {
+    public function __construct(private NotificationService $notificationService)
+    {
+    }
+
     public function index(Request $request): Response
     {
-        $notifications = Notification::query()
-            ->where('user_id', $request->user()->id)
+        $notifications = Notification::where('user_id', $request->user()->id)
             ->latest()
             ->paginate(20);
 
@@ -25,16 +29,14 @@ class NotificationController extends Controller
     {
         abort_unless($notification->user_id === $request->user()->id, 403);
 
-        $notification->update(['lu' => true]);
+        $this->notificationService->markAsRead($notification);
 
         return back();
     }
 
     public function markAllAsRead(Request $request): RedirectResponse
     {
-        Notification::where('user_id', $request->user()->id)
-            ->where('lu', false)
-            ->update(['lu' => true]);
+        $this->notificationService->markAllAsRead($request->user());
 
         return back();
     }
