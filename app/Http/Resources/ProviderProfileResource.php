@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
@@ -10,16 +9,16 @@ class ProviderProfileResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            "id" => $this->id,
-            "user_id" => $this->user_id,
-            "user" => $this->whenLoaded("user", function () {
-                return [
-                    "id" => $this->user->id,
-                    "name" => $this->user->name,
-                ];
-            }),
-            "services" => ServiceResource::collection($this->whenLoaded("services")),
-            "zones" => ZoneResource::collection($this->whenLoaded("zones")),
+            'id' => $this->id,
+            'name' => $this->user?->name,
+            'services' => $this->whenLoaded('services', fn () => $this->services->map(fn ($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+            ])),
+            'zones' => $this->whenLoaded('zones', fn () => $this->zones->map(fn ($z) => [
+                'id' => $z->id,
+                'name' => $z->name,
+            ])),
         ];
     }
 }

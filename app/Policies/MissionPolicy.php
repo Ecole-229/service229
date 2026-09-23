@@ -40,6 +40,12 @@ class MissionPolicy
             && ! in_array($mission->status, [Mission::STATUS_COMPLETED, Mission::STATUS_CANCELLED]);
     }
 
+    public function dispute(User $user, Mission $mission): bool
+    {
+        return $this->isParticipant($user, $mission)
+            && ! in_array($mission->status, [Mission::STATUS_COMPLETED, Mission::STATUS_CANCELLED]);
+    }
+
     private function isParticipant(User $user, Mission $mission): bool
     {
         return $mission->client_id === $user->id

@@ -8,3 +8,4 @@ Route::get('/health', fn () => response()->json([
 ]));
 
 require __DIR__.'/api_titilola.php';
+require __DIR__.'/api_abed.php';
